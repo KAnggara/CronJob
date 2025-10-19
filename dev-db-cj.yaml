@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dev-db-backup
+  namespace: database
+spec:
+  schedule: "* 00 * * *" # Setiap hari pada pukul 00:00
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeName: kvm4
+          containers:
+            - name: dev-db-backup
+              image: postgres:17.6-alpine3.22
+              env:
+                - name: PGHOST
+                  value: postgres
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: kasecrets
+                      key: db_username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: kasecrets
+                      key: db_password
+                - name: PGDATABASE
+                  value: dev
+              volumeMounts:
+                - name: host-backup
+                  mountPath: /backup
+              command:
+                - /bin/bash
+                - -c
+                - >
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S) &&
+                  pg_dump -Fc "$PGDATABASE" > /backup/backup_${PGDATABASE}_$TIMESTAMP.dump &&
+                  echo "Backup tersimpan di /backup/backup_${PGDATABASE}_$TIMESTAMP.dump"
+          restartPolicy: OnFailure
+          volumes:
+            - name: host-backup
+              hostPath:
+                path: /opt/pgsql_backups
+                type: DirectoryOrCreate
