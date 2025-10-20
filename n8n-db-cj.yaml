@@ -4,7 +4,7 @@ metadata:
   name: n8n-db-backup
   namespace: database
 spec:
-  schedule: "0 0 * * *" # Setiap hari pada pukul 00:00
+  schedule: "1 0 * * *" # Setiap hari pada pukul 00:00
   jobTemplate:
     spec:
       template:
@@ -35,9 +35,11 @@ spec:
                 - /bin/bash
                 - -c
                 - >
-                  TIMESTAMP=$(date +%Y%m%d_%H%M%S) &&
+                  TIMESTAMP=$(date +%Y%m%d) &&
                   pg_dump -Fc "$PGDATABASE" > /backup/backup_${PGDATABASE}_$TIMESTAMP.dump &&
-                  echo "Backup tersimpan di /backup/backup_${PGDATABASE}_$TIMESTAMP.dump"
+                  echo "Backup tersimpan di /backup/backup_${PGDATABASE}_$TIMESTAMP.dump" &&
+                  find /backup -name "backup_${PGDATABASE}_*.dump" -type f -mtime +30 -exec rm -f {} \; &&
+                  echo "File backup lebih dari 30 hari telah dihapus."
           restartPolicy: OnFailure
           volumes:
             - name: host-backup
