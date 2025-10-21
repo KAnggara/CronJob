@@ -26,6 +26,9 @@ jobs:
           mkdir -p $HOME/.kube
           echo "$KUBE_CONFIG" | base64 --decode > ~/.kube/config
           cat $HOME/.kube/config
+      - name: Debug kubeconfig
+        run: |
+          echo "$KUBE_CONFIG" | head -c 100
 
       - name: Install kubeval for schema validation
         run: |
