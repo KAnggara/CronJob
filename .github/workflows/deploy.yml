@@ -20,30 +20,53 @@ jobs:
         with:
           version: "v1.30.0"
 
-      - name: Configure kubeconfig
-        if: github.ref == 'refs/heads/main'
+      # Pastikan kubeconfig terisi dari secrets
+      - name: Setup kubeconfig
         run: |
-          mkdir -p $HOME/.kube
-          echo "$KUBE_CONFIG" | base64 --decode > ~/.kube/config
-          cat $HOME/.kube/config
-      - name: Debug kubeconfig
-        run: |
-          echo "$KUBE_CONFIG" | head -c 100
+          if [ -z "${{ secrets.KUBE_CONFIG }}" ]; then
+            echo "❌ ERROR: KUBE_CONFIG secret is empty!"
+            exit 1
+          fi
 
-      - name: Install kubeval for schema validation
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+          echo "✅ kubeconfig created successfully"
+
+      # Validasi koneksi cluster
+      - name: Verify cluster access
+        run: |
+          kubectl version --client
+          kubectl cluster-info || {
+            echo "❌ Failed to connect to cluster."
+            exit 1
+          }
+
+      # Install kubeval
+      - name: Install kubeval
         run: |
           wget -q https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
-          tar xf kubeval-linux-amd64.tar.gz
+          tar -xf kubeval-linux-amd64.tar.gz
           sudo mv kubeval /usr/local/bin/
+          kubeval --version
 
-      - name: Validate YAML syntax (kubectl dry-run)
+      # Validasi syntax YAML
+      - name: Validate YAML syntax
         run: |
           kubectl apply --dry-run=client -f .
+          echo "✅ All YAML syntaxes are valid."
 
-      - name: Validate Kubernetes schema (kubeval)
+      # Validasi schema Kubernetes (loop tiap file)
+      - name: Validate Kubernetes schema
         run: |
-          kubeval --strict *.yaml
+          for file in *.yaml; do
+            echo "🔍 Validating $file"
+            kubeval --strict "$file"
+          done
+          echo "✅ Schema validation passed."
 
+      # Deploy ke cluster
       - name: Deploy to Kubernetes Cluster
         if: github.ref == 'refs/heads/main'
         run: |
