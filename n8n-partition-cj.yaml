@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: n8n-create-partition
+  namespace: database
+spec:
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  schedule: "11 21 * * *" # Setiap hari jam 00:00
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeName: kvm4
+          containers:
+            - name: n8n-create-partition
+              image: postgres:17.6-alpine3.22
+              env:
+                - name: PGHOST
+                  value: 212.85.26.183
+                - name: PGPORT
+                  value: "9876"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: kasecrets
+                      key: db_username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: kasecrets
+                      key: db_password
+                - name: PGDATABASE
+                  value: n8n
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache coreutils >/dev/null 2>&1
+                  NEXT_DATE=$(date -d "+1 day" +%Y_%m_%d)
+                  OLD_DATE=$(date -d "-30 day" +%Y_%m_%d)
+
+                  SQL_CREATE="CREATE TABLE IF NOT EXISTS n8n.execution_data_${NEXT_DATE} PARTITION OF n8n.execution_data FOR VALUES FROM ('$(date -d "+1 day" +%Y-%m-%d)') TO ('$(date -d "+2 day" +%Y-%m-%d)');"
+                  SQL_GRANT="GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE n8n.execution_data_${NEXT_DATE} TO n3ightn; GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA n8n TO n3ightn; ALTER TABLE n8n.execution_data_${NEXT_DATE} OWNER TO n3ightn;"
+                  SQL_DROP="DROP TABLE IF EXISTS n8n.execution_data_${OLD_DATE};"
+
+                  echo "Membuat partisi untuk besok dan menghapus partisi >30 hari..."
+                  psql -c "$SQL_CREATE"
+                  psql -c "$SQL_GRANT"
+                  psql -c "$SQL_DROP"
+          restartPolicy: OnFailure
