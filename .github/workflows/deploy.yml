@@ -28,14 +28,11 @@ jobs:
 
       - name: Validate YAML syntax (kubectl dry-run)
         run: |
-          for file in $(find k8s -name '*.yaml'); do
-            echo "Validating $file ..."
-            kubectl apply --dry-run=client -f "$file"
-          done
+          kubectl apply --dry-run=client -f .
 
       - name: Validate Kubernetes schema (kubeval)
         run: |
-          kubeval --strict k8s/*.yaml
+          kubeval --strict *.yaml
 
       - name: Configure kubeconfig
         if: github.ref == 'refs/heads/main'
@@ -47,5 +44,4 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Deploying manifests..."
-          kubectl apply -f k8s/ --namespace=database
-          kubectl get pods -n database
+          kubectl apply -f .
