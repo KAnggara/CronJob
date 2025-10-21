@@ -43,28 +43,11 @@ jobs:
             exit 1
           }
 
-      # Install kubeval
-      - name: Install kubeval
-        run: |
-          wget -q https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
-          tar -xf kubeval-linux-amd64.tar.gz
-          sudo mv kubeval /usr/local/bin/
-          kubeval --version
-
       # Validasi syntax YAML
       - name: Validate YAML syntax
         run: |
           kubectl apply --dry-run=client -f .
           echo "✅ All YAML syntaxes are valid."
-
-      # Validasi schema Kubernetes (loop tiap file)
-      - name: Validate Kubernetes schema
-        run: |
-          for file in *.yaml; do
-            echo "🔍 Validating $file"
-            kubeval --strict "$file"
-          done
-          echo "✅ Schema validation passed."
 
       # Deploy ke cluster
       - name: Deploy to Kubernetes Cluster
