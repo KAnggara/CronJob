@@ -1,0 +1,51 @@
+name: Validate and Deploy K8s YAML
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  k8s-validate-deploy:
+    name: Validate and Deploy Kubernetes YAML
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Install kubeval for schema validation
+        run: |
+          wget -q https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo mv kubeval /usr/local/bin/
+
+      - name: Validate YAML syntax (kubectl dry-run)
+        run: |
+          for file in $(find k8s -name '*.yaml'); do
+            echo "Validating $file ..."
+            kubectl apply --dry-run=client -f "$file"
+          done
+
+      - name: Validate Kubernetes schema (kubeval)
+        run: |
+          kubeval --strict k8s/*.yaml
+
+      - name: Configure kubeconfig
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes Cluster
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Deploying manifests..."
+          kubectl apply -f k8s/ --namespace=database
+          kubectl get pods -n database
