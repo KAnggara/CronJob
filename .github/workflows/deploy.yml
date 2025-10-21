@@ -19,11 +19,12 @@ jobs:
         uses: azure/setup-kubectl@v4
         with:
           version: "v1.30.0"
+
       - name: Configure kubeconfig
         if: github.ref == 'refs/heads/main'
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          echo "$KUBE_CONFIG" | base64 --decode > ~/.kube/config
           cat $HOME/.kube/config
 
       - name: Install kubeval for schema validation
