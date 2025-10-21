@@ -1,4 +1,4 @@
-name: Validate and Deploy K8s YAML
+name: Validate and Deploy Kubernetes YAML
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   k8s-validate-deploy:
-    name: Validate and Deploy Kubernetes YAML
+    name: Validate and Deploy K8s YAML
     runs-on: ubuntu-latest
 
     steps:
@@ -39,9 +39,12 @@ jobs:
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          cat $HOME/.kube/config
 
       - name: Deploy to Kubernetes Cluster
         if: github.ref == 'refs/heads/main'
         run: |
-          echo "Deploying manifests..."
+          echo "🚀 Deploying manifests to cluster..."
           kubectl apply -f .
+          echo "✅ Deployment complete."
+          kubectl get cronjobs -A
