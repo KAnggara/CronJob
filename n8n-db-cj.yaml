@@ -6,7 +6,7 @@ metadata:
 spec:
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
-  schedule: "01 00 * * *" # Setiap hari pada pukul 00:00
+  schedule: "49 20 * * *" # Setiap hari pada pukul 00:00
   jobTemplate:
     spec:
       template:
@@ -38,9 +38,9 @@ spec:
                 - -c
                 - >
                   TIMESTAMP=$(date +%Y%m%d) &&
-                  pg_dump -Fc "$PGDATABASE" > /backup/backup_${PGDATABASE}_$TIMESTAMP.dump &&
-                  echo "Backup tersimpan di /backup/backup_${PGDATABASE}_$TIMESTAMP.dump" &&
-                  find /backup -name "backup_${PGDATABASE}_*.dump" -type f -mtime +30 -exec rm -f {} \; &&
+                  pg_dump -Fc "$PGDATABASE" > /backup/${PGDATABASE}/backup_${PGDATABASE}_$TIMESTAMP.dump &&
+                  echo "Backup tersimpan di /backup/${PGDATABASE}/backup_${PGDATABASE}_$TIMESTAMP.dump" &&
+                  find /backup/${PGDATABASE} -name "backup_${PGDATABASE}_*.dump" -type f -mtime +30 -exec rm -f {} \; &&
                   echo "File backup lebih dari 30 hari telah dihapus."
           restartPolicy: OnFailure
           volumes:
