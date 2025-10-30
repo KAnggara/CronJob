@@ -6,7 +6,7 @@ metadata:
 spec:
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
-  schedule: "10 00 * * *" # Setiap hari jam 00:10
+  schedule: "10 00 29 10 *" # Setiap hari jam 00:10
   jobTemplate:
     spec:
       template:
