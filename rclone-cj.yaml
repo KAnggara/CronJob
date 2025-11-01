@@ -4,14 +4,29 @@ metadata:
   name: rclone-backup
   namespace: database
 spec:
+  schedule: "30 00 * * *"
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
-  schedule: "30 00 * * *"
   jobTemplate:
     spec:
       template:
         spec:
           nodeName: kvm4
+          restartPolicy: OnFailure
+          initContainers:
+            - name: init-copy-config
+              image: busybox
+              command:
+                - sh
+                - -c
+                - |
+                  mkdir -p /config/rclone
+                  cp /secret/rclone/rclone.conf /config/rclone/rclone.conf
+              volumeMounts:
+                - name: rclone-config-secret
+                  mountPath: /secret/rclone
+                - name: rclone-config
+                  mountPath: /config/rclone
           containers:
             - name: rclone
               image: rclone/rclone:latest
@@ -19,18 +34,20 @@ spec:
                 - sync
                 - /opt/pgsql_backups
                 - PakaiWA_Drive:PakaiWA_Drive/sql
-                - --log-level=DEBUG
+                - --config=/config/rclone/rclone.conf
+                - --log-level=INFO
                 - --stats=0
               volumeMounts:
                 - name: backup-data
                   mountPath: /opt/pgsql_backups
                 - name: rclone-config
                   mountPath: /config/rclone
-          restartPolicy: OnFailure
           volumes:
             - name: backup-data
               hostPath:
                 path: /opt/pgsql_backups
-            - name: rclone-config
+            - name: rclone-config-secret
               secret:
                 secretName: rclone-config
+            - name: rclone-config
+              emptyDir: {}
