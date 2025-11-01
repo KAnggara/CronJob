@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rclone-backup
+  namespace: database
+spec:
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  schedule: "30 00 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeName: kvm4
+          containers:
+            - name: rclone
+              image: rclone/rclone:latest
+              args:
+                - sync
+                - /opt/pgsql_backups
+                - PakaiWA_Drive:PakaiWA_Drive/sql
+                - --log-level=DEBUG
+                - --stats=0
+              volumeMounts:
+                - name: backup-data
+                  mountPath: /opt/pgsql_backups
+                - name: rclone-config
+                  mountPath: /config/rclone
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-data
+              hostPath:
+                path: /opt/pgsql_backups
+            - name: rclone-config
+              secret:
+                secretName: rclone-config
