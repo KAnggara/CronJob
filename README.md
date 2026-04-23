@@ -1,13 +1,25 @@
 # CronJob
 
-Database
-
-
-```sh
-sudo apt update
-sudo apt install cron
-sudo systemctl enable --now cron
-
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application 
+metadata: 
+  name: cronjob 
+spec:
+  destination: 
+    namespace: '' 
+    server: https://kubernetes.default.svc 
+  source: 
+    path: . 
+    repoURL: https://github.com/KAnggara/CronJob.git
+    targetRevision: HEAD 
+  sources: [] 
+  project: cronjob 
+  syncPolicy: 
+    automated: 
+      prune: true 
+      selfHeal: true 
+      enabled: true 
+    syncOptions: 
+      - CreateNamespace=true
 ```
-
-/usr/bin/rclone sync /opt/pgsql_backups PakaiWA_Drive:PakaiWA_Drive/sql --progress
